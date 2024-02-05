@@ -13,6 +13,7 @@ use kubewarden::{
     host_capabilities::kubernetes::{
         get_resource, GetResourceRequest, ListAllResourcesRequest, ListResourcesByNamespaceRequest,
     },
+    host_capabilities::oci::manifest,
     logging, protocol_version_guest,
     request::ValidationRequest,
     validate_settings,
@@ -171,6 +172,46 @@ fn validate(payload: &[u8]) -> CallResult {
     } else {
         return kubewarden::reject_request(
             Some("API authentication service must have labels".to_owned()),
+            Some(404),
+            None,
+            None,
+        );
+    }
+    if let Ok(manifest) = manifest("ghcr.io/kubewarden/tests/context-aware-test-policy:latest") {
+        match manifest {
+            kubewarden::host_capabilities::oci::OciManifestResponse::Image(_) => {}
+            kubewarden::host_capabilities::oci::OciManifestResponse::ImageIndex(_) => {
+                return kubewarden::reject_request(
+                    Some("Invalid OCI manifest type. Got Image index manifest. But it should be image manifest".to_owned()),
+                    Some(404),
+                    None,
+                    None,
+                );
+            }
+        }
+    } else {
+        return kubewarden::reject_request(
+            Some("cannot fetch policy manifest".to_owned()),
+            Some(404),
+            None,
+            None,
+        );
+    }
+    if let Ok(manifest) = manifest("ghcr.io/kubewarden/policy-server:latest") {
+        match manifest {
+            kubewarden::host_capabilities::oci::OciManifestResponse::Image(_) => {
+                return kubewarden::reject_request(
+                    Some("Invalid OCI manifest type. Got Image manifest. But it should be image index manifest".to_owned()),
+                    Some(404),
+                    None,
+                    None,
+                );
+            }
+            kubewarden::host_capabilities::oci::OciManifestResponse::ImageIndex(_) => {}
+        }
+    } else {
+        return kubewarden::reject_request(
+            Some("cannot fetch policy manifest".to_owned()),
             Some(404),
             None,
             None,

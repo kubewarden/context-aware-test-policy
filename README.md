@@ -10,6 +10,8 @@ Every time a deployment with the label `app.kubernetes.io/component: "api"` is c
 - A deployment with the label `app.kubernetes.io/component: database` must exist in the deployment namespace.
 - A deployment with the label `app.kubernetes.io/component: frontend` must exist in the deployment namespace.
 - A service named `api-auth-service` with the label `app.kubernetes.io/part-of: api` must exist in the deployment namespace.
+- Check if it can get the OCI manifest for the policy `ghcr.io/kubewarden/tests/context-aware-test-policy:latest`
+- Check if it can get the OCI image index manifest for the container image `ghcr.io/kubewarden/policy-server:latest`
 
 ## Settings
 
