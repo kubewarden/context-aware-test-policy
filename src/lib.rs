@@ -1,22 +1,26 @@
-use k8s_openapi::api::apps::v1::Deployment;
-use kubewarden::host_capabilities::kubernetes::{list_all_resources, list_resources_by_namespace};
+use k8s_openapi::{
+    api::{
+        apps::v1::Deployment,
+        authorization::v1::{
+            ResourceAttributes, SubjectAccessReview, SubjectAccessReviewSpec,
+            SubjectAccessReviewStatus,
+        },
+        core::v1::{Namespace, Service},
+    },
+    List,
+};
+use kubewarden::host_capabilities::kubernetes::{
+    can_i, get_resource, list_all_resources, list_resources_by_namespace, GetResourceRequest,
+    ListAllResourcesRequest, ListResourcesByNamespaceRequest,
+};
 use lazy_static::lazy_static;
 
 use guest::prelude::*;
 use kubewarden_policy_sdk::wapc_guest as guest;
 
-use k8s_openapi::api::core::v1::{Namespace, Service};
-use k8s_openapi::{List, Metadata};
-
 extern crate kubewarden_policy_sdk as kubewarden;
-use kubewarden::{
-    host_capabilities::kubernetes::{
-        get_resource, GetResourceRequest, ListAllResourcesRequest, ListResourcesByNamespaceRequest,
-    },
-    logging, protocol_version_guest,
-    request::ValidationRequest,
-    validate_settings,
-};
+use k8s_openapi::Metadata;
+use kubewarden::{logging, protocol_version_guest, request::ValidationRequest, validate_settings};
 
 mod settings;
 use settings::Settings;
@@ -171,6 +175,31 @@ fn validate(payload: &[u8]) -> CallResult {
     } else {
         return kubewarden::reject_request(
             Some("API authentication service must have labels".to_owned()),
+            Some(404),
+            None,
+            None,
+        );
+    }
+
+    let sar = SubjectAccessReview {
+        spec: SubjectAccessReviewSpec {
+            // system:serviceaccount:<namespace>:<serviceaccountname>
+            user: Some("system:serviceaccount:kubewarden:policy-server".to_string()),
+            resource_attributes: Some(ResourceAttributes {
+                namespace: Some("kubewarden".to_string()),
+                verb: Some("create".to_string()),
+                resource: Some("deployments".to_string()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let can_i_result: SubjectAccessReviewStatus = can_i(&sar)?;
+
+    if can_i_result.allowed {
+        return kubewarden::reject_request(
+            Some("Service account has high risk permissions".to_owned()),
             Some(404),
             None,
             None,
