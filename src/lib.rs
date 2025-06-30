@@ -74,7 +74,7 @@ fn validate(payload: &[u8]) -> CallResult {
     let kube_request = ListAllResourcesRequest {
         api_version: "v1".to_owned(),
         kind: "Namespace".to_owned(),
-        label_selector: Some(format!("customer-id={}", customer_id)),
+        label_selector: Some(format!("customer-id={customer_id}")),
         field_selector: None,
     };
 
@@ -82,8 +82,7 @@ fn validate(payload: &[u8]) -> CallResult {
     if namespaces.items.is_empty() {
         return kubewarden::reject_request(
             Some(format!(
-                "Label customer-id ({}) must match namespace label",
-                customer_id
+                "Label customer-id ({customer_id}) must match namespace label"
             )),
             Some(404),
             None,
@@ -94,8 +93,7 @@ fn validate(payload: &[u8]) -> CallResult {
     if namespaces.items.len() > 1 {
         return kubewarden::reject_request(
             Some(format!(
-                "Multiple namespaces found with label 'customer-id={}'",
-                customer_id
+                "Multiple namespaces found with label 'customer-id={customer_id}'"
             )),
             Some(400),
             None,
