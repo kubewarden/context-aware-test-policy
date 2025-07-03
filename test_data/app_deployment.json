@@ -51,6 +51,7 @@
           }
         },
         "spec": {
+          "serviceAccountName": "system:serviceaccounts:default:testing",
           "containers": [
             {
               "image": "api:1.0.0",
@@ -100,7 +101,6 @@
       "updatedReplicas": 3
     }
   },
-
   "operation": "CREATE",
   "options": {
     "apiVersion": "meta.k8s.io/v1",
@@ -124,7 +124,10 @@
   },
   "uid": "8560a482-887d-49b2-8781-415d04a0dcb0",
   "userInfo": {
-    "groups": ["system:masters", "system:authenticated"],
+    "groups": [
+      "system:masters",
+      "system:authenticated"
+    ],
     "username": "system:admin"
   }
 }

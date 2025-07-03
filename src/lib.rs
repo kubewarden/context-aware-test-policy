@@ -1,22 +1,26 @@
-use k8s_openapi::api::apps::v1::Deployment;
-use kubewarden::host_capabilities::kubernetes::{list_all_resources, list_resources_by_namespace};
+use k8s_openapi::{
+    api::{
+        apps::v1::Deployment,
+        authorization::v1::{
+            ResourceAttributes, SubjectAccessReview, SubjectAccessReviewSpec,
+            SubjectAccessReviewStatus,
+        },
+        core::v1::{Namespace, Service},
+    },
+    List,
+};
+use kubewarden::host_capabilities::kubernetes::{
+    can_i, get_resource, list_all_resources, list_resources_by_namespace, GetResourceRequest,
+    ListAllResourcesRequest, ListResourcesByNamespaceRequest, SubjectAccessReviewRequest,
+};
 use lazy_static::lazy_static;
 
 use guest::prelude::*;
 use kubewarden_policy_sdk::wapc_guest as guest;
 
-use k8s_openapi::api::core::v1::{Namespace, Service};
-use k8s_openapi::{List, Metadata};
-
 extern crate kubewarden_policy_sdk as kubewarden;
-use kubewarden::{
-    host_capabilities::kubernetes::{
-        get_resource, GetResourceRequest, ListAllResourcesRequest, ListResourcesByNamespaceRequest,
-    },
-    logging, protocol_version_guest,
-    request::ValidationRequest,
-    validate_settings,
-};
+use k8s_openapi::Metadata;
+use kubewarden::{logging, protocol_version_guest, request::ValidationRequest, validate_settings};
 
 mod settings;
 use settings::Settings;
@@ -40,6 +44,40 @@ pub extern "C" fn wapc_init() {
 fn validate(payload: &[u8]) -> CallResult {
     let validation_request: ValidationRequest<Settings> = ValidationRequest::new(payload)?;
     let deployment = serde_json::from_value::<Deployment>(validation_request.request.object)?;
+
+    let pod = deployment.clone().spec.unwrap().template.spec.unwrap();
+    let service_account = pod
+        .clone()
+        .service_account_name
+        .or(pod.service_account)
+        .unwrap_or_default();
+    let sar = SubjectAccessReview {
+        spec: SubjectAccessReviewSpec {
+            user: Some(service_account.to_owned()),
+            resource_attributes: Some(ResourceAttributes {
+                namespace: Some("kube-system".to_string()),
+                group: Some("".to_owned()),
+                verb: Some("create".to_string()),
+                resource: Some("pods".to_string()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let can_i_result: SubjectAccessReviewStatus = can_i(SubjectAccessReviewRequest {
+        subject_access_review: sar.clone(),
+        disable_cache: false,
+    })?;
+
+    if can_i_result.allowed {
+        return kubewarden::reject_request(
+            Some("Service account has high risk permissions".to_owned()),
+            Some(404),
+            None,
+            None,
+        );
+    }
 
     let labels = if let Some(labels) = deployment.metadata.labels.clone() {
         labels
@@ -70,7 +108,7 @@ fn validate(payload: &[u8]) -> CallResult {
     let kube_request = ListAllResourcesRequest {
         api_version: "v1".to_owned(),
         kind: "Namespace".to_owned(),
-        label_selector: Some(format!("customer-id={}", customer_id)),
+        label_selector: Some(format!("customer-id={customer_id}")),
         field_selector: None,
     };
 
@@ -78,8 +116,7 @@ fn validate(payload: &[u8]) -> CallResult {
     if namespaces.items.is_empty() {
         return kubewarden::reject_request(
             Some(format!(
-                "Label customer-id ({}) must match namespace label",
-                customer_id
+                "Label customer-id ({customer_id}) must match namespace label"
             )),
             Some(404),
             None,
@@ -90,8 +127,7 @@ fn validate(payload: &[u8]) -> CallResult {
     if namespaces.items.len() > 1 {
         return kubewarden::reject_request(
             Some(format!(
-                "Multiple namespaces found with label 'customer-id={}'",
-                customer_id
+                "Multiple namespaces found with label 'customer-id={customer_id}'"
             )),
             Some(400),
             None,

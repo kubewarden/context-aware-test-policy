@@ -1,5 +1,23 @@
 - type: Exchange
   request: |
+    !KubernetesCanI
+    subject_access_review:
+      apiVersion: authorization.k8s.io/v1
+      kind: SubjectAccessReview
+      metadata: {}
+      spec:
+        resourceAttributes:
+          group: ''
+          namespace: kube-system
+          resource: pods
+          verb: create
+        user: system:serviceaccounts:default:testing
+    disable_cache: false
+  response:
+    type: Success
+    payload: '{"allowed":false}'
+- type: Exchange
+  request: |
     !KubernetesListResourceAll
     api_version: v1
     kind: Namespace
