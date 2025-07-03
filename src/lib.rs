@@ -55,7 +55,7 @@ fn validate(payload: &[u8]) -> CallResult {
         spec: SubjectAccessReviewSpec {
             user: Some(service_account.to_owned()),
             resource_attributes: Some(ResourceAttributes {
-                namespace: Some("default".to_string()),
+                namespace: Some("kube-system".to_string()),
                 group: Some("".to_owned()),
                 verb: Some("create".to_string()),
                 resource: Some("pods".to_string()),

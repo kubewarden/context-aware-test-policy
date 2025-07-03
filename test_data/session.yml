@@ -8,7 +8,7 @@
       spec:
         resourceAttributes:
           group: ''
-          namespace: default
+          namespace: kube-system
           resource: pods
           verb: create
         user: system:serviceaccounts:default:testing
