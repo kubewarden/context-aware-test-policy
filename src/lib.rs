@@ -11,7 +11,7 @@ use k8s_openapi::{
 };
 use kubewarden::host_capabilities::kubernetes::{
     can_i, get_resource, list_all_resources, list_resources_by_namespace, GetResourceRequest,
-    ListAllResourcesRequest, ListResourcesByNamespaceRequest,
+    ListAllResourcesRequest, ListResourcesByNamespaceRequest, SubjectAccessReviewRequest,
 };
 use lazy_static::lazy_static;
 
@@ -65,7 +65,10 @@ fn validate(payload: &[u8]) -> CallResult {
         },
         ..Default::default()
     };
-    let can_i_result: SubjectAccessReviewStatus = can_i(&sar)?;
+    let can_i_result: SubjectAccessReviewStatus = can_i(SubjectAccessReviewRequest {
+        subject_access_review: sar.clone(),
+        disable_cache: false,
+    })?;
 
     if can_i_result.allowed {
         return kubewarden::reject_request(

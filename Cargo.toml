@@ -13,7 +13,7 @@ crate-type = ["cdylib"]
 k8s-openapi = { version = "0.25.0", default_features = false, features = [
   "v1_32",
 ] }
-kubewarden-policy-sdk = { git = "https://github.com/jvanz/policy-sdk-rust", branch = "can-i" }
+kubewarden-policy-sdk = { git = "https://github.com/kubewarden/policy-sdk-rust", branch = "main" }
 # kubewarden-policy-sdk = "0.13.4"
 lazy_static = "1.4"
 serde = { version = "1.0", features = ["derive"] }

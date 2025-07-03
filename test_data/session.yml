@@ -12,6 +12,7 @@
           resource: pods
           verb: create
         user: system:serviceaccounts:default:testing
+    disable_cache: false
   response:
     type: Success
     payload: '{"allowed":false}'
