@@ -45,6 +45,37 @@ fn validate(payload: &[u8]) -> CallResult {
     let validation_request: ValidationRequest<Settings> = ValidationRequest::new(payload)?;
     let deployment = serde_json::from_value::<Deployment>(validation_request.request.object)?;
 
+    let pod = deployment.clone().spec.unwrap().template.spec.unwrap();
+    let service_account = pod
+        .clone()
+        .service_account_name
+        .or(pod.service_account)
+        .unwrap_or_default();
+    let sar = SubjectAccessReview {
+        spec: SubjectAccessReviewSpec {
+            user: Some(service_account.to_owned()),
+            resource_attributes: Some(ResourceAttributes {
+                namespace: Some("default".to_string()),
+                group: Some("".to_owned()),
+                verb: Some("create".to_string()),
+                resource: Some("pods".to_string()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let can_i_result: SubjectAccessReviewStatus = can_i(&sar)?;
+
+    if can_i_result.allowed {
+        return kubewarden::reject_request(
+            Some("Service account has high risk permissions".to_owned()),
+            Some(404),
+            None,
+            None,
+        );
+    }
+
     let labels = if let Some(labels) = deployment.metadata.labels.clone() {
         labels
     } else {
@@ -173,31 +204,6 @@ fn validate(payload: &[u8]) -> CallResult {
     } else {
         return kubewarden::reject_request(
             Some("API authentication service must have labels".to_owned()),
-            Some(404),
-            None,
-            None,
-        );
-    }
-
-    let sar = SubjectAccessReview {
-        spec: SubjectAccessReviewSpec {
-            // system:serviceaccount:<namespace>:<serviceaccountname>
-            user: Some("system:serviceaccount:kubewarden:policy-server".to_string()),
-            resource_attributes: Some(ResourceAttributes {
-                namespace: Some("kubewarden".to_string()),
-                verb: Some("create".to_string()),
-                resource: Some("deployments".to_string()),
-                ..Default::default()
-            }),
-            ..Default::default()
-        },
-        ..Default::default()
-    };
-    let can_i_result: SubjectAccessReviewStatus = can_i(&sar)?;
-
-    if can_i_result.allowed {
-        return kubewarden::reject_request(
-            Some("Service account has high risk permissions".to_owned()),
             Some(404),
             None,
             None,
