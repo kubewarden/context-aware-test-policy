@@ -46,6 +46,21 @@ fn validate(payload: &[u8]) -> CallResult {
     let deployment = serde_json::from_value::<Deployment>(validation_request.request.object)?;
 
     let pod = deployment.clone().spec.unwrap().template.spec.unwrap();
+
+    let labels = if let Some(labels) = deployment.metadata.labels.clone() {
+        labels
+    } else {
+        return kubewarden::accept_request();
+    };
+
+    // Check if the app.kubernetes.io/component label is set to "api"
+    // If not, accept the request
+    if labels.get("app.kubernetes.io/component") != Some(&"api".to_owned()) {
+        return kubewarden::accept_request();
+    }
+
+    // Check if the Deployment is using a ServiceAcount that has permissions
+    // to create Pods in the kube-system namespace. If so, reject the request
     let service_account = pod
         .clone()
         .service_account_name
@@ -69,7 +84,6 @@ fn validate(payload: &[u8]) -> CallResult {
         subject_access_review: sar.clone(),
         disable_cache: false,
     })?;
-
     if can_i_result.allowed {
         return kubewarden::reject_request(
             Some("Service account has high risk permissions".to_owned()),
@@ -77,18 +91,6 @@ fn validate(payload: &[u8]) -> CallResult {
             None,
             None,
         );
-    }
-
-    let labels = if let Some(labels) = deployment.metadata.labels.clone() {
-        labels
-    } else {
-        return kubewarden::accept_request();
-    };
-
-    // Check if the app.kubernetes.io/component label is set to "api"
-    // If not, accept the request
-    if labels.get("app.kubernetes.io/component") != Some(&"api".to_owned()) {
-        return kubewarden::accept_request();
     }
 
     // Get the customer_id label value
