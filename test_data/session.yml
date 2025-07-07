@@ -11,7 +11,7 @@
           namespace: kube-system
           resource: pods
           verb: create
-        user: system:serviceaccounts:default:testing
+        user: system:serviceaccount:customer-1:testing
     disable_cache: false
   response:
     type: Success
