@@ -61,11 +61,13 @@ fn validate(payload: &[u8]) -> CallResult {
 
     // Check if the Deployment is using a ServiceAcount that has permissions
     // to create Pods in the kube-system namespace. If so, reject the request
+    let namespace = deployment.metadata.namespace.clone().unwrap_or_default();
     let service_account = pod
         .clone()
         .service_account_name
         .or(pod.service_account)
-        .unwrap_or_default();
+        .map(|sa| format!("system:serviceaccount:{namespace}:{sa}"))
+        .unwrap_or_else(|| format!("system:serviceaccount:{namespace}:default"));
     let sar = SubjectAccessReview {
         spec: SubjectAccessReviewSpec {
             user: Some(service_account.to_owned()),
