@@ -1,0 +1,140 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: customer1
+  labels:
+    customer-id: "customer1"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-db
+  namespace: customer1
+  labels:
+    app: nginx
+    customer-id: customer1
+    app.kubernetes.io/component: database
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.14.2
+          ports:
+            - containerPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-frontend
+  namespace: customer1
+  labels:
+    app: nginx
+    customer-id: customer1
+    app.kubernetes.io/component: frontend
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.14.2
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-auth-service
+  namespace: customer1
+  labels:
+    app.kubernetes.io/part-of: api
+spec:
+  selector:
+    app.kubernetes.io/name: MyApp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9376
+---
+# ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: super-admin-sa
+  namespace: customer1
+
+---
+# Powerful Role with all requested permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: super-admin-clusterrole
+rules:
+  # For listing secrets
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["list"]
+  # Full access to all workload resources
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["*"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs: ["*"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["*"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: super-admin-clusterrole-binding
+subjects:
+  - kind: ServiceAccount
+    name: super-admin-sa
+    namespace: customer1
+roleRef:
+  kind: ClusterRole
+  name: super-admin-clusterrole
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  namespace: customer1
+  labels:
+    app: nginx
+    app.kubernetes.io/component: "api"
+    customer-id: customer1
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      serviceAccountName: super-admin-sa # remove to pass can_i capability
+      containers:
+        - name: nginx
+          image: nginx:1.14.2
+          ports:
+            - containerPort: 80
