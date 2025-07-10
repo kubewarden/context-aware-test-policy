@@ -73,7 +73,7 @@ dependencies = [
 
 [[package]]
 name = "context-aware-test-policy"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "k8s-openapi",
  "kubewarden-policy-sdk",
@@ -349,7 +349,7 @@ dependencies = [
 [[package]]
 name = "kubewarden-policy-sdk"
 version = "0.14.1"
-source = "git+https://github.com/jvanz/policy-sdk-rust?branch=can-i-remove-k8s-wrapper#08d69b33c86b8067faa990f16e5d83753609ad66"
+source = "git+https://github.com/jvanz/policy-sdk-rust?branch=can-i-remove-k8s-wrapper#fbe646c1f6b594066cc4f5bfafa0371bae5594e4"
 dependencies = [
  "anyhow",
  "cfg-if",

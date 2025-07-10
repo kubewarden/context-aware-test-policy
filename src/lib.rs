@@ -8,7 +8,8 @@ use k8s_openapi::{
 };
 use kubewarden::host_capabilities::kubernetes::{
     can_i, get_resource, list_all_resources, list_resources_by_namespace, GetResourceRequest,
-    ListAllResourcesRequest, ListResourcesByNamespaceRequest, SubjectAccessReviewRequest,
+    ListAllResourcesRequest, ListResourcesByNamespaceRequest, ResourceAttributes,
+    SubjectAccessReviewRequest,
 };
 use lazy_static::lazy_static;
 
@@ -67,11 +68,14 @@ fn validate(payload: &[u8]) -> CallResult {
         .unwrap_or_else(|| format!("system:serviceaccount:{namespace}:default"));
     let can_i_result: SubjectAccessReviewStatus = can_i(SubjectAccessReviewRequest {
         user: service_account,
-        group: "".to_owned(),
-        verb: "create".to_owned(),
-        resource: "pods".to_owned(),
-        namespace: "kube-system".to_owned(),
-        disable_cache: false,
+        resource_attributes: ResourceAttributes {
+            group: Some("".to_owned()),
+            verb: "create".to_owned(),
+            resource: "pods".to_owned(),
+            namespace: Some("kube-system".to_owned()),
+            ..Default::default()
+        },
+        ..Default::default()
     })?;
     if can_i_result.allowed {
         return kubewarden::reject_request(
