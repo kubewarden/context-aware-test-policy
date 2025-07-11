@@ -73,7 +73,7 @@ dependencies = [
 
 [[package]]
 name = "context-aware-test-policy"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "k8s-openapi",
  "kubewarden-policy-sdk",
@@ -348,8 +348,8 @@ dependencies = [
 
 [[package]]
 name = "kubewarden-policy-sdk"
-version = "0.13.5"
-source = "git+https://github.com/kubewarden/policy-sdk-rust?branch=main#57cb8475005a6f9b293371c23dee28e1ab3ea1d5"
+version = "0.14.1"
+source = "git+https://github.com/kubewarden/policy-sdk-rust?branch=main#4797a84b36f6c2735451cffa04d520f000ab844f"
 dependencies = [
  "anyhow",
  "cfg-if",

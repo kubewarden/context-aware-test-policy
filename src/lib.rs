@@ -1,17 +1,15 @@
 use k8s_openapi::{
     api::{
         apps::v1::Deployment,
-        authorization::v1::{
-            ResourceAttributes, SubjectAccessReview, SubjectAccessReviewSpec,
-            SubjectAccessReviewStatus,
-        },
+        authorization::v1::SubjectAccessReviewStatus,
         core::v1::{Namespace, Service},
     },
     List,
 };
 use kubewarden::host_capabilities::kubernetes::{
-    can_i, get_resource, list_all_resources, list_resources_by_namespace, GetResourceRequest,
-    ListAllResourcesRequest, ListResourcesByNamespaceRequest, SubjectAccessReviewRequest,
+    can_i, get_resource, list_all_resources, list_resources_by_namespace, CanIRequest,
+    GetResourceRequest, ListAllResourcesRequest, ListResourcesByNamespaceRequest,
+    ResourceAttributes, SubjectAccessReview,
 };
 use lazy_static::lazy_static;
 
@@ -68,22 +66,18 @@ fn validate(payload: &[u8]) -> CallResult {
         .or(pod.service_account)
         .map(|sa| format!("system:serviceaccount:{namespace}:{sa}"))
         .unwrap_or_else(|| format!("system:serviceaccount:{namespace}:default"));
-    let sar = SubjectAccessReview {
-        spec: SubjectAccessReviewSpec {
-            user: Some(service_account.to_owned()),
-            resource_attributes: Some(ResourceAttributes {
-                namespace: Some("kube-system".to_string()),
+    let can_i_result: SubjectAccessReviewStatus = can_i(CanIRequest {
+        subject_access_review: SubjectAccessReview {
+            user: service_account,
+            resource_attributes: ResourceAttributes {
                 group: Some("".to_owned()),
-                verb: Some("create".to_string()),
-                resource: Some("pods".to_string()),
+                verb: "create".to_owned(),
+                resource: "pods".to_owned(),
+                namespace: Some("kube-system".to_owned()),
                 ..Default::default()
-            }),
+            },
             ..Default::default()
         },
-        ..Default::default()
-    };
-    let can_i_result: SubjectAccessReviewStatus = can_i(SubjectAccessReviewRequest {
-        subject_access_review: sar.clone(),
         disable_cache: false,
     })?;
     if can_i_result.allowed {

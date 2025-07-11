@@ -1,17 +1,17 @@
 - type: Exchange
   request: |
     !KubernetesCanI
-    subject_access_review:
-      apiVersion: authorization.k8s.io/v1
-      kind: SubjectAccessReview
-      metadata: {}
-      spec:
-        resourceAttributes:
-          group: ''
-          namespace: kube-system
-          resource: pods
-          verb: create
-        user: system:serviceaccount:customer-1:testing
+    request:
+      groups: null
+      resource_attributes:
+        group: ''
+        name: null
+        namespace: kube-system
+        resource: pods
+        subresource: null
+        verb: create
+        version: null
+      user: system:serviceaccount:customer-1:testing
     disable_cache: false
   response:
     type: Success
