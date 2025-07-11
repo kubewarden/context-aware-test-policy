@@ -349,7 +349,7 @@ dependencies = [
 [[package]]
 name = "kubewarden-policy-sdk"
 version = "0.14.1"
-source = "git+https://github.com/jvanz/policy-sdk-rust?branch=can-i-remove-k8s-wrapper#fbe646c1f6b594066cc4f5bfafa0371bae5594e4"
+source = "git+https://github.com/kubewarden/policy-sdk-rust?branch=main#4797a84b36f6c2735451cffa04d520f000ab844f"
 dependencies = [
  "anyhow",
  "cfg-if",
