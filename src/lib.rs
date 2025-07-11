@@ -7,9 +7,9 @@ use k8s_openapi::{
     List,
 };
 use kubewarden::host_capabilities::kubernetes::{
-    can_i, get_resource, list_all_resources, list_resources_by_namespace, GetResourceRequest,
-    ListAllResourcesRequest, ListResourcesByNamespaceRequest, ResourceAttributes,
-    SubjectAccessReviewRequest,
+    can_i, get_resource, list_all_resources, list_resources_by_namespace, CanIRequest,
+    GetResourceRequest, ListAllResourcesRequest, ListResourcesByNamespaceRequest,
+    ResourceAttributes, SubjectAccessReview,
 };
 use lazy_static::lazy_static;
 
@@ -66,16 +66,19 @@ fn validate(payload: &[u8]) -> CallResult {
         .or(pod.service_account)
         .map(|sa| format!("system:serviceaccount:{namespace}:{sa}"))
         .unwrap_or_else(|| format!("system:serviceaccount:{namespace}:default"));
-    let can_i_result: SubjectAccessReviewStatus = can_i(SubjectAccessReviewRequest {
-        user: service_account,
-        resource_attributes: ResourceAttributes {
-            group: Some("".to_owned()),
-            verb: "create".to_owned(),
-            resource: "pods".to_owned(),
-            namespace: Some("kube-system".to_owned()),
+    let can_i_result: SubjectAccessReviewStatus = can_i(CanIRequest {
+        subject_access_review: SubjectAccessReview {
+            user: service_account,
+            resource_attributes: ResourceAttributes {
+                group: Some("".to_owned()),
+                verb: "create".to_owned(),
+                resource: "pods".to_owned(),
+                namespace: Some("kube-system".to_owned()),
+                ..Default::default()
+            },
             ..Default::default()
         },
-        ..Default::default()
+        disable_cache: false,
     })?;
     if can_i_result.allowed {
         return kubewarden::reject_request(

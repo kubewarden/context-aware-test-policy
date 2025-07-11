@@ -12,7 +12,6 @@
         verb: create
         version: null
       user: system:serviceaccount:customer-1:testing
-      disable_cache: false
     disable_cache: false
   response:
     type: Success
