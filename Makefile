@@ -18,12 +18,7 @@ lint:
 
 .PHONY: e2e-tests
 e2e-tests: annotated-policy.wasm
-	true
-	# bats e2e.bats
-	# Temporarily disable e2e-tests for the release; to run they need a kwctl with
-	# the changes to the sdk and policy-evaluator, which are unreleased as these
-	# run this specific policy in the integration tests.
-	# The e2e-tests should be reinstated after the policy release.
+	bats e2e.bats
 
 .PHONY: test
 test: fmt lint
